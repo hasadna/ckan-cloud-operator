@@ -7,6 +7,7 @@ from ckan_cloud_operator.providers.cluster import manager
 from ckan_cloud_operator.labels import manager as labels_manager
 
 from .aws.cli import aws as aws_cli
+from .gcloud.cli import gcloud as gcloud_cli
 
 
 @click.group()
@@ -16,6 +17,7 @@ def cluster():
 
 
 cluster.add_command(aws_cli)
+cluster.add_command(gcloud_cli)
 
 
 @cluster.command()

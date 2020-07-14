@@ -21,9 +21,9 @@ def initialize(interactive=False):
     crds_manager.install_crd(APP_NAME_CRD_SINGULAR, APP_NAME_CRD_PLURAL_SUFFIX, APP_NAME_CRD_KIND_SUFFIX)
 
 
-def create(deployment_provider, instance_id=None, instance_name=None, values=None, values_filename=None, exists_ok=False,
+def create(deployment_provider="none", instance_id=None, instance_name=None, values=None, values_filename=None, exists_ok=False,
            dry_run=False, update_=False, wait_ready=False, skip_deployment=False, skip_route=False, force=False):
-    assert deployment_provider in ['helm']
+    assert deployment_provider in ['none', 'helm']
     if not instance_id:
         if instance_name:
             instance_id = '{}-{}'.format(instance_name, _generate_password(6))

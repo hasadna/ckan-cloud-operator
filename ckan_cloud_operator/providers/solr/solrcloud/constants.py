@@ -1,5 +1,7 @@
 PROVIDER_ID = 'solrcloud'
 
+DEFAULT_ZK_SUFFIXES = "zk-0 zk-1 zk-2"
+DEFAULT_SC_SUFFIXES = "sc-3 sc-4 sc-5"
 
 LOG4J_PROPERTIES = """
 # Logging level

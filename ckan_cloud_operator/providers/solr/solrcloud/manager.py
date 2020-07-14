@@ -29,7 +29,7 @@ from ckan_cloud_operator import logs
 from ckan_cloud_operator.config import manager as config_manager
 from ckan_cloud_operator.providers.cluster import manager as cluster_manager
 
-from .constants import LOG4J_PROPERTIES, SOLR_CONFIG_XML
+from .constants import LOG4J_PROPERTIES, SOLR_CONFIG_XML, DEFAULT_ZK_SUFFIXES, DEFAULT_SC_SUFFIXES
 
 
 def start_zoonavigator_port_forward():
@@ -82,7 +82,7 @@ def initialize(interactive=False, dry_run=False):
         config_manager.set('container-spec-overrides', '{"resources":{"limits":{"memory":"1Gi"}}}',
             configmap_name='ckan-cloud-provider-solr-solrcloud-sc-config')
 
-    solr_resources = config_manager.interactive_set(
+    config_manager.interactive_set(
         {
             'sc-cpu': '1',
             'sc-mem': '1Gi',
@@ -96,6 +96,8 @@ def initialize(interactive=False, dry_run=False):
             'zk-mem-limit': '200Mi',
             'zn-cpu-limit': '0.5',
             'zn-mem-limit': '0.5Gi',
+            'sc-suffixes': DEFAULT_SC_SUFFIXES,
+            'zk-suffixes': DEFAULT_ZK_SUFFIXES
         },
         secret_name='solr-config',
         interactive=interactive
@@ -165,17 +167,17 @@ def initialize_solrcloud(zk_host_names, pause_deployment, interactive=False, dry
 
 
 def _get_zk_suffixes():
-    if cluster_manager.get_provider_id() != 'minikube':
-        return ['zk-0', 'zk-1', 'zk-2']
-    else:
-        return ['zk-0']
+    return config_manager.get(
+        'zk-suffixes', secret_name='solr-config',
+        default=DEFAULT_ZK_SUFFIXES if cluster_manager.get_provider_id() != 'minikube' else "zk-0"
+    ).split(" ")
 
 
 def _get_sc_suffixes():
-    if cluster_manager.get_provider_id() != 'minikube':
-        return ['sc-3', 'sc-4', 'sc-5']
-    else:
-        return ['sc-3']
+    return config_manager.get(
+        'sc-suffixes', secret_name='solr-config',
+        default=DEFAULT_SC_SUFFIXES if cluster_manager.get_provider_id() != 'minikube' else "sc-3"
+    ).split(" ")
 
 
 def _apply_zookeeper_configmap(zk_host_names):

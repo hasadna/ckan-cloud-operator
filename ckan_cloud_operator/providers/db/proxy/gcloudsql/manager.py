@@ -106,6 +106,9 @@ def _apply_deployment(db_prefix=None):
         _get_resource_name(suffix=db_prefix),
         _get_resource_labels(for_deployment=True, suffix=db_prefix or ''),
         {
+            'selector': {
+                'matchLabels': _get_resource_labels(for_deployment=True, suffix=db_prefix or ''),
+            },
             'replicas': 1,
             'revisionHistoryLimit': 10,
             'strategy': {'type': 'RollingUpdate', },

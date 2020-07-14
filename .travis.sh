@@ -65,6 +65,14 @@ elif [ "${1}" == "install-tools" ]; then
       echo Azure CLI Installed Successfully!
    fi
 
+   if [ "${K8_PROVIDER}" == "gcloud" ]; then
+      apt-get update && apt-get install -y gnupg bash-completion build-essential jq python-pip &&\
+      /usr/bin/pip2 install pyopenssl &&\
+      echo "deb http://packages.cloud.google.com/apt cloud-sdk-stretch main" >> /etc/apt/sources.list.d/google-cloud-sdk.list && \
+      curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+      apt-get update -y && apt-get install -y google-cloud-sdk postgresql nano dnsutils
+   fi
+
     curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
     chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
     echo Kubectl Installed Successfully!

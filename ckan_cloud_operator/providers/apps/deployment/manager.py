@@ -31,7 +31,7 @@ def create_ckan_admin_user(instance_id, instance, user):
 
 
 def _get_deployment_provider(instance, required=True):
-    for get_provider in [_get_helm_deployment_provider]:
+    for get_provider in [_get_helm_deployment_provider, _get_none_deployment_provider]:
         res = get_provider(instance)
         if res:
             break
@@ -46,5 +46,14 @@ def _get_helm_deployment_provider(instance):
     if instance['metadata'].get('annotations', {}).get(f'{label_prefix}/deployment-provider') == 'helm':
         from .helm import manager as helm_manager
         return helm_manager
+    else:
+        return None
+
+
+def _get_none_deployment_provider(instance):
+    label_prefix = labels_manager.get_label_prefix()
+    if instance['metadata'].get('annotations', {}).get(f'{label_prefix}/deployment-provider') == 'none':
+        from .none import manager as none_manager
+        return none_manager
     else:
         return None

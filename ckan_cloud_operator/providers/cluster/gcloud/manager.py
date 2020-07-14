@@ -42,6 +42,10 @@ def initialize(interactive=False):
         _config_interactive_set({'cluster-name': None})
         print('\nEnter the google project ID\n')
         _config_interactive_set({'project-id': None})
+        print('\nWould you like to deploy the NFS client provisioner for shared storage? you need to have an existing NFS server. enter yes/no\n')
+        _config_interactive_set({'deploy-nfs-client-provisioner': "no"})
+        if _config_get("deploy-nfs-client-provisioner") == "yes":
+            _config_interactive_set({"nfs-client-provsioner-server-ip": None})
 
     gcloud_driver.activate_auth(
         _config_get('project-id'),
@@ -50,6 +54,7 @@ def initialize(interactive=False):
         _config_get('service-account-json', is_secret=True)
     )
     print(yaml.dump(get_info(), default_flow_style=False))
+    create_storage_class()
 
 
 def activate_auth():
@@ -155,3 +160,30 @@ def create_volume(disk_size_gb, labels, use_existing_disk_name=None, zone=None):
 
 def _generate_password(l):
     return binascii.hexlify(os.urandom(l)).decode()
+
+
+def deploy_nfs_client_provisioner():
+    logs.info("Deploying nfs client provisioner to provide cca-ckan storage class")
+
+    logs.exit_catastrophic_failure()
+
+
+def create_storage_class():
+    if kubectl.get("storageclass/cca-ckan", required=False) is None:
+        if _config_get("deploy-nfs-client-provisioner") == "yes":
+            deploy_nfs_client_provisioner()
+        else:
+            logs.error("Missing cca-ckan storage class")
+            logs.exit_catastrophic_failure()
+    kubectl.apply({
+        'apiVersion': 'storage.k8s.io/v1', 'kind': 'StorageClass',
+        'metadata': {
+            'name': 'cca-storage',
+        },
+        'provisioner': 'kubernetes.io/gce-pd',
+        'reclaimPolicy': 'Delete',
+        'volumeBindingMode': 'Immediate',
+        'parameters': {
+            'type': 'pd-standard',
+        }
+    })
