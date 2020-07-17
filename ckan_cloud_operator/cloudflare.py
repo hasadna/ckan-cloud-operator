@@ -5,7 +5,7 @@ from ckan_cloud_operator import logs
 
 
 def get_zone_id(auth_email, auth_key, zone_name):
-    data = curl(auth_email, auth_key, 'zones')
+    data = curl(auth_email, auth_key, 'zones?name=%s' % zone_name)
     zones = [zone['id'] for zone in data['result'] if zone['name'] == zone_name]
     return zones[0] if len(zones) > 0 else None
 
@@ -46,11 +46,12 @@ def curl(auth_email, auth_key, urlpart, data=None, method='GET'):
     logs.info(f'Running Cloudflare curl: {urlpart} {data} {method}')
     logs.debug(f'{auth_email} / {auth_key}')
     cmd = ['curl', '-s', '-X', method, f'https://api.cloudflare.com/client/v4/{urlpart}']
-    cmd += [
-        '-H', f'X-Auth-Email: {auth_email}',
-        '-H', f'X-Auth-Key: {auth_key}',
-        '-H', 'Content-Type: application/json'
-    ]
+    if auth_email == "api-token":
+        cmd += ["-H", f'Authorization: Bearer {auth_key}']
+    else:
+        cmd += ['-H', f'X-Auth-Email: {auth_email}',
+                '-H', f'X-Auth-Key: {auth_key}',]
+    cmd += ['-H', 'Content-Type: application/json']
     if data:
         cmd += ['--data', json.dumps(data)]
     logs.debug(*cmd)
@@ -60,3 +61,8 @@ def curl(auth_email, auth_key, urlpart, data=None, method='GET'):
     except Exception:
         logs.critical(f'Got invalid data from cloudflare curl: {output}')
         raise
+
+
+if __name__ == "__main__":
+    import sys
+    globals()[sys.argv[1]](*sys.argv[2:])

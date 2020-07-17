@@ -1,7 +1,6 @@
-import toml
 import time
-import hashlib
 import json
+from ruamel import yaml
 
 from ckan_cloud_operator import kubectl
 from ckan_cloud_operator import logs
@@ -47,14 +46,14 @@ def _get_deployment_spec(router_name, router_type, annotations, image=None, http
                 'containers': [
                     {
                         'name': 'traefik',
-                        'image': image or 'traefik:1.6-alpine',
+                        'image': image or 'traefik:2.2',
                         'ports': [{'containerPort': 80}],
                         'volumeMounts': [
                             {'name': 'etc-traefik', 'mountPath': '/etc-traefik'},
                             {'name': 'traefik-acme', 'mountPath': '/traefik-acme', 'subPath': f'router-traefik-{router_name}'},
                             *httpauth_secrets_volume_mounts,
                         ],
-                        'args': ['--configFile=/etc-traefik/traefik.toml'],
+                        'args': ['--configFile=/etc-traefik/static.yaml'],
                         **(json.loads(container_spec_overrides) if container_spec_overrides else {})
                     }
                 ],
@@ -84,10 +83,15 @@ def _get_deployment_spec(router_name, router_type, annotations, image=None, http
         container['ports'].append({'containerPort': 443})
         cloudflare_email, cloudflare_api_key = get_cloudflare_credentials()
         secret_name = f'ckancloudrouter-{router_name}-cloudflare'
-        kubectl.update_secret(secret_name, {
-            'CLOUDFLARE_EMAIL': cloudflare_email,
-            'CLOUDFLARE_API_KEY': cloudflare_api_key,
-        }, labels=get_labels(router_name, router_type))
+        if '@' not in cloudflare_email:
+            kubectl.update_secret(secret_name, {
+                'CF_DNS_API_TOKEN': cloudflare_api_key,
+            }, labels=get_labels(router_name, router_type))
+        else:
+            kubectl.update_secret(secret_name, {
+                'CF_API_EMAIL': cloudflare_email,
+                'CF_API_KEY': cloudflare_api_key,
+            }, labels=get_labels(router_name, router_type))
         container['envFrom'] = [{'secretRef': {'name': secret_name}}]
     elif dns_provider == 'azure':
         logs.info('Traefik deployment: adding SSL support using Azure DNS')
@@ -126,14 +130,23 @@ def _update(router_name, spec, annotations, routes):
               external_domains=external_domains, dns_provider=dns_provider)
     kubectl.apply(kubectl.get_configmap(
         resource_name, get_labels(router_name, router_type),
-        {'traefik.toml': toml.dumps(traefik_router_config.get(
-            routes, cloudflare_email,
-            enable_access_log=bool(spec.get('enable-access-log')),
-            wildcard_ssl_domain=spec.get('wildcard-ssl-domain'),
-            external_domains=external_domains,
-            dns_provider=dns_provider,
-            force=True
-        ))}
+        {
+            'static.yaml': yaml.safe_dump(traefik_router_config.get_static(
+                routes, cloudflare_email,
+                enable_access_log=bool(spec.get('enable-access-log')),
+                wildcard_ssl_domain=spec.get('wildcard-ssl-domain'),
+                external_domains=external_domains,
+                dns_provider=dns_provider,
+                acme_email=spec.get('acme-email'),
+                dynamic_config_file='/etc-traefik/dynamic.yaml'
+            ), default_flow_style=False),
+            'dynamic.yaml': yaml.safe_dump(traefik_router_config.get_dynamic(
+                routes, cloudflare_email,
+                wildcard_ssl_domain=spec.get('wildcard-ssl-domain'),
+                external_domains=external_domains,
+                dns_provider=dns_provider,
+            ), default_flow_style=False)
+        }
     ))
     domains = {}
     httpauth_secrets = []
@@ -182,7 +195,6 @@ def _update(router_name, spec, annotations, routes):
         resource_name, get_labels(router_name, router_type, for_deployment=True),
         _get_deployment_spec(
             router_name, router_type, annotations,
-            image=('traefik:1.7' if (external_domains or len(httpauth_secrets) > 0) else None),
             httpauth_secrets=httpauth_secrets,
             dns_provider=dns_provider
         )
