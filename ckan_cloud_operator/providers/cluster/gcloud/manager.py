@@ -45,7 +45,9 @@ def initialize(interactive=False):
         print('\nWould you like to deploy the NFS client provisioner for shared storage? you need to have an existing NFS server. enter yes/no\n')
         _config_interactive_set({'deploy-nfs-client-provisioner': "no"})
         if _config_get("deploy-nfs-client-provisioner") == "yes":
+            print('\nEnter the NFS server ip and a path available to mount from the NFS server which will be used by the provisioner (path should exist)\n')
             _config_interactive_set({"nfs-client-provsioner-server-ip": None})
+            _config_interactive_set({"nfs-client-provsioner-server-path": None})
 
     gcloud_driver.activate_auth(
         _config_get('project-id'),
@@ -164,8 +166,19 @@ def _generate_password(l):
 
 def deploy_nfs_client_provisioner():
     logs.info("Deploying nfs client provisioner to provide cca-ckan storage class")
-
-    logs.exit_catastrophic_failure()
+    from ckan_cloud_operator.providers.apps import manager as apps_manager
+    apps_manager.create(
+        deployment_provider="none", instance_id="nfs-client-provisioner",
+        values={
+            "namespace": "ckan-cloud",
+            "app-type": "nfs-client-provisioner",
+            "nfs-server-ip": _config_get("nfs-client-provsioner-server-ip"),
+            "storageclass": "cca-ckan",
+            "nfs-server-path": _config_get("nfs-client-provsioner-server-path"),
+            "archive-on-delete": "true"
+        },
+        update_=True
+    )
 
 
 def create_storage_class():

@@ -18,6 +18,9 @@ def _config_interactive_set(default_values, namespace=None, is_secret=False, suf
 # custom provider code starts here
 #
 
+import datetime
+import subprocess
+import traceback
 from ckan_cloud_operator import logs
 
 
@@ -35,6 +38,35 @@ def pre_update_hook(instance_id, instance, override_spec, skip_route=False, dry_
     logs.info(f'Running {app_type} app pre_update_hook')
     _get_app_type_manager(app_type).pre_update_hook(instance_id, instance, res)
     return res
+
+
+def get(instance_id, instance=None):
+    res = {
+        'ready': None,
+        'none_metadata': {
+            'instance_id': instance_id,
+            'status_generated_at': datetime.datetime.now(),
+            'status_generated_from': subprocess.check_output(["hostname"]).decode().strip(),
+        }
+    }
+    app_type = instance['spec'].get('app-type')
+    _get_app_type_manager(app_type).get(instance_id, instance, res)
+    return res
+
+
+def get_backend_url(instance_id, instance):
+    return None
+
+
+def delete(instance_id, instance):
+    errors = []
+    try:
+        app_type = instance['spec'].get('app-type')
+        _get_app_type_manager(app_type).delete(instance_id, instance)
+    except Exception:
+        logs.warning(traceback.format_exc())
+        errors.append(f'Failed to delete app')
+    assert len(errors) == 0, ', '.join(errors)
 
 
 def _pre_update_hook_override_spec(override_spec, instance):
