@@ -44,7 +44,8 @@ def create(instance_type, values_file, instance_id, instance_name, exists_ok, dr
 @click.option('--skip-deployment', is_flag=True)
 @click.option('--skip-route', is_flag=True)
 @click.option('--force', is_flag=True)
-def update(instance_id_or_name, override_spec_json, persist_overrides, wait_ready, skip_deployment, skip_route, force):
+@click.option('--override-spec-file')
+def update(instance_id_or_name, override_spec_json, persist_overrides, wait_ready, skip_deployment, skip_route, force, override_spec_file):
     """Update an instance to the latest resource spec, optionally applying the given json override to the resource spec
 
     Examples:
@@ -54,6 +55,11 @@ def update(instance_id_or_name, override_spec_json, persist_overrides, wait_read
     ckan-cloud-operator ckan instance update <INSTANCE_ID_OR_NAME> '{"replicas": 3}' --persist-overrides
     """
     override_spec = json.loads(override_spec_json) if override_spec_json else None
+    if override_spec:
+        assert not override_spec_file, "Can't specify both OVERRIDE_SPEC_JSON and override_spec_file"
+    elif override_spec_file:
+        with open(override_spec_file) as f:
+            override_spec = yaml.safe_load(f)
     manager.update(instance_id_or_name, override_spec=override_spec, persist_overrides=persist_overrides,
                    wait_ready=wait_ready, skip_deployment=skip_deployment, skip_route=skip_route,
                    force=force)
