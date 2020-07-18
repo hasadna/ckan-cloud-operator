@@ -6,6 +6,7 @@ import os
 import traceback
 import subprocess
 import sys
+import json
 
 from ckan_cloud_operator import kubectl
 from ckan_cloud_operator import logs
@@ -94,6 +95,16 @@ def update(instance_id_or_name, override_spec=None, persist_overrides=False, wai
                 config_manager.set(
                     values=bucket_credentials,
                     secret_name='bucket-credentials',
+                    namespace=instance_id
+                )
+
+        if instance['spec'].get('operatorCopySecrets'):
+            for target_secret_name, source_secret_config in json.loads(instance['spec']['operatorCopySecrets']).items():
+                for k, v in source_secret_config.items():
+                    source_secret_config[k] = v.replace("__INSTANCE_NAME__", instance_id_or_name)
+                kubectl.update_secret(
+                    target_secret_name,
+                    kubectl.decode_secret(kubectl.get('secret', source_secret_config["fromName"], namespace=source_secret_config.get("fromNamespace", "ckan-cloud"))),
                     namespace=instance_id
                 )
 
