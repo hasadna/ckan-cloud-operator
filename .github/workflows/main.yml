@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - env:
+        DOCKER_HUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+        DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      run: |
+        echo "${DOCKER_HUB_PASSWORD}" | docker login -u "${DOCKER_HUB_USER}" --password-stdin &&\
+        docker build -t datacity/ckan-cloud-operator:${GITHUB_SHA} -f Dockerfile.gcloud . &&\
+        docker push datacity/ckan-cloud-operator:${GITHUB_SHA} &&\
+        if [ "${GITHUB_REF}" == "refs/heads/master" ]; then
+          docker tag datacity/ckan-cloud-operator:${GITHUB_SHA} datacity/ckan-cloud-operator:latest &&\
+          docker push datacity/ckan-cloud-operator:latest
+        fi &&\
+        echo datacity/ckan-cloud-operator:${GITHUB_SHA}
