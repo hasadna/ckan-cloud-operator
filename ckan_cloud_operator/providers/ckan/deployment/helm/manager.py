@@ -433,12 +433,13 @@ def _pre_update_hook_route(instance_id, skip_route, instance, res, dry_run=False
                                          lambda i: i.update(registerSubdomain=sub_domain),
                                          dry_run=dry_run)
         res.update(**{'root-domain': root_domain, 'sub-domain': sub_domain})
-        site_url = instance['spec'].get('siteUrl')
-        if site_url != f'https://{sub_domain}.{root_domain}':
-            logs.warning(f'instance siteUrl was changed from {site_url} to https://{sub_domain}.{root_domain}')
-            _pre_update_hook_modify_spec(instance_id, instance,
-                                         lambda i: i.update(siteUrl=f'https://{sub_domain}.{root_domain}'),
-                                         dry_run=dry_run)
+        if not instance['spec'].get('forceKeepSiteUrl'):
+            site_url = instance['spec'].get('siteUrl')
+            if site_url != f'https://{sub_domain}.{root_domain}':
+                logs.warning(f'instance siteUrl was changed from {site_url} to https://{sub_domain}.{root_domain}')
+                _pre_update_hook_modify_spec(instance_id, instance,
+                                             lambda i: i.update(siteUrl=f'https://{sub_domain}.{root_domain}'),
+                                             dry_run=dry_run)
     return sub_domain, root_domain
 
 

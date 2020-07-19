@@ -207,12 +207,14 @@ def create(resource, is_yaml=False):
 
 
 
-def apply(resource, is_yaml=False, reconcile=False, dry_run=False):
+def apply(resource, is_yaml=False, reconcile=False, dry_run=False, force=False):
     if is_yaml: resource = yaml.load(resource)
     cmd = 'auth reconcile' if reconcile else 'apply'
     args = []
     if dry_run:
         args.append('--dry-run')
+    if force:
+        args.append('--force')
     args = " ".join(args)
     try:
         logs.subprocess_run(

@@ -44,7 +44,7 @@ def _get_base_static_config(**kwargs):
 #             }
 
 
-def _add_letsencrypt(dns_provider, static_config, letsencrypt_cloudflare_email, wildcard_ssl_domain=None, external_domains=False, acme_email=None):
+def _add_letsencrypt(dns_provider, static_config, letsencrypt_cloudflare_email, wildcard_ssl_domain=None, external_domains=False, acme_email=None, routes=None):
     logs.info('Adding Letsencrypt acme Traefik v2 static configuration', dns_provider=dns_provider,
               letsencrypt_cloudflare_email=letsencrypt_cloudflare_email,
               wildcard_ssl_domain=wildcard_ssl_domain, external_domains=external_domains)
@@ -89,6 +89,21 @@ def _add_letsencrypt(dns_provider, static_config, letsencrypt_cloudflare_email, 
             }
         }
     }
+    has_extra_external_domains = False
+    for route in routes:
+        if route['spec'].get('extra-external-domains'):
+            has_extra_external_domains = True
+            break
+    if has_extra_external_domains:
+        static_config['certificatesResolvers'] = {
+            'tlsresolver': {
+                'acme': {
+                    'email': acme_email,
+                    'storage': '/traefik-acme/acme-tls.json',
+                    'tlsChallenge': {},
+                }
+            }
+        }
 
 
 def _add_route(dynamic_config, domains, route, enable_ssl_redirect, external_domains, wildcard_ssl_domain):
@@ -153,8 +168,7 @@ def _add_route(dynamic_config, domains, route, enable_ssl_redirect, external_dom
         assert not external_domains, "external_domains not yet supported for traefik v2"
         if root_domain == wildcard_ssl_domain:
             domain_confs.append({
-                "main": root_domain,
-                "sans": [f'*.{root_domain}']
+                "main": f'*.{root_domain}'
             })
         else:
             domain_confs.append({
@@ -171,6 +185,23 @@ def _add_route(dynamic_config, domains, route, enable_ssl_redirect, external_dom
                 'domains': domain_confs
             }
         }
+        for i, domain in enumerate(route['spec'].get('extra-external-domains', [])):
+            dynamic_config['http']['routers']['http-%s-eed%s' % (route_name, i)] = {
+                'rule': f'Host(`{domain}`)',
+                'service': route_name,
+                'middlewares': ['SSLRedirect'],
+                'entrypoints': ['http'],
+            }
+            dynamic_config['http']['routers']['https-%s-eed%s' % (route_name, i)] = {
+                'rule': f'Host(`{domain}`)',
+                'service': route_name,
+                'middlewares': [],
+                'entrypoints': ['https'],
+                'tls': {
+                    'certResolver': 'tlsresolver',
+                    'domains': [{"main": domain}]
+                }
+            }
 
 
 def get_static(routes, letsencrypt_cloudflare_email, enable_access_log=False, wildcard_ssl_domain=None, external_domains=False, dns_provider=None, acme_email=None, dynamic_config_file=None):
@@ -204,7 +235,7 @@ def get_static(routes, letsencrypt_cloudflare_email, enable_access_log=False, wi
         or (dns_provider == 'route53')
         or (dns_provider == 'azure')
     ):
-        _add_letsencrypt(dns_provider, static_config, letsencrypt_cloudflare_email, wildcard_ssl_domain=wildcard_ssl_domain, external_domains=external_domains, acme_email=acme_email)
+        _add_letsencrypt(dns_provider, static_config, letsencrypt_cloudflare_email, wildcard_ssl_domain=wildcard_ssl_domain, external_domains=external_domains, acme_email=acme_email, routes=routes)
     else:
         logs.info('No valid dns_provider, will not setup SSL', dns_provider=dns_provider)
     return static_config
