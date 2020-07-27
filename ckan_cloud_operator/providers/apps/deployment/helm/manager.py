@@ -217,38 +217,41 @@ def _init_namespace(instance_id, instance, dry_run=False):
 
 
 def _pre_update_hook_route(instance_id, skip_route, instance, res, dry_run=False):
-    root_domain = routers_manager.get_default_root_domain()
-    sub_domain = instance['spec'].get('sub-domain', f'ckan-cloud-app-{instance_id}')
-    if not skip_route:
-        # full domain to route to the instance
-        instance_domain = instance['spec'].get('domain')
-        if instance_domain and instance_domain != f'{sub_domain}.{root_domain}':
-            logs.warning(f'instance domain was changed from {instance_domain} to {sub_domain}.{root_domain}')
-            _pre_update_hook_modify_spec(instance_id, instance,
-                                         lambda i: i.update(domain=f'{sub_domain}.{root_domain}'),
-                                         dry_run=dry_run)
-        # instance is added to router only if this is true, as all routers must use SSL and may use sans SSL too
-        with_sans_ssl = instance['spec'].get('withSansSSL')
-        if not with_sans_ssl:
-            logs.warning(f'forcing with_sans_ssl, even though withSansSSL is disabled')
-            _pre_update_hook_modify_spec(instance_id, instance,
-                                         lambda i: i.update(withSansSSL=True),
-                                         dry_run=dry_run)
-        # subdomain to register on the default root domain
-        register_subdomain = instance['spec'].get('registerSubdomain')
-        if register_subdomain != sub_domain:
-            logs.warning(f'instance register sub domain was changed from {register_subdomain} to {sub_domain}')
-            _pre_update_hook_modify_spec(instance_id, instance,
-                                         lambda i: i.update(registerSubdomain=sub_domain),
-                                         dry_run=dry_run)
-        res.update(**{'root-domain': root_domain, 'sub-domain': sub_domain})
-        if not instance['spec'].get('forceKeepSiteUrl'):
-            site_url = instance['spec'].get('siteUrl')
-            if site_url != f'https://{sub_domain}.{root_domain}':
-                logs.warning(f'instance siteUrl was changed from {site_url} to https://{sub_domain}.{root_domain}')
+    if instance["spec"].get("skipRoute"):
+        sub_domain, root_domain = None, None
+    else:
+        root_domain = routers_manager.get_default_root_domain()
+        sub_domain = instance['spec'].get('sub-domain', f'ckan-cloud-app-{instance_id}')
+        if not skip_route:
+            # full domain to route to the instance
+            instance_domain = instance['spec'].get('domain')
+            if instance_domain and instance_domain != f'{sub_domain}.{root_domain}':
+                logs.warning(f'instance domain was changed from {instance_domain} to {sub_domain}.{root_domain}')
                 _pre_update_hook_modify_spec(instance_id, instance,
-                                             lambda i: i.update(siteUrl=f'https://{sub_domain}.{root_domain}'),
+                                             lambda i: i.update(domain=f'{sub_domain}.{root_domain}'),
                                              dry_run=dry_run)
+            # instance is added to router only if this is true, as all routers must use SSL and may use sans SSL too
+            with_sans_ssl = instance['spec'].get('withSansSSL')
+            if not with_sans_ssl:
+                logs.warning(f'forcing with_sans_ssl, even though withSansSSL is disabled')
+                _pre_update_hook_modify_spec(instance_id, instance,
+                                             lambda i: i.update(withSansSSL=True),
+                                             dry_run=dry_run)
+            # subdomain to register on the default root domain
+            register_subdomain = instance['spec'].get('registerSubdomain')
+            if register_subdomain != sub_domain:
+                logs.warning(f'instance register sub domain was changed from {register_subdomain} to {sub_domain}')
+                _pre_update_hook_modify_spec(instance_id, instance,
+                                             lambda i: i.update(registerSubdomain=sub_domain),
+                                             dry_run=dry_run)
+            res.update(**{'root-domain': root_domain, 'sub-domain': sub_domain})
+            if not instance['spec'].get('forceKeepSiteUrl'):
+                site_url = instance['spec'].get('siteUrl')
+                if site_url != f'https://{sub_domain}.{root_domain}':
+                    logs.warning(f'instance siteUrl was changed from {site_url} to https://{sub_domain}.{root_domain}')
+                    _pre_update_hook_modify_spec(instance_id, instance,
+                                                 lambda i: i.update(siteUrl=f'https://{sub_domain}.{root_domain}'),
+                                                 dry_run=dry_run)
     return sub_domain, root_domain
 
 
