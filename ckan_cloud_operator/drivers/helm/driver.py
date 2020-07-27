@@ -49,7 +49,10 @@ def deploy(tiller_namespace, chart_repo, chart_name, chart_version, release_name
     if not chart_repo_name:
         chart_repo_name = 'ckan-cloud'
         logs.info(chart_repo_name=chart_repo_name)
-    if chart_repo:
+    if chart_repo == "file":
+        chart_name = chart_version
+        chart_version = None
+    elif chart_repo:
         subprocess.check_call(f'helm repo add "{chart_repo_name}" "{chart_repo}"', shell=True)
     assert not (values_filename and values), 'Only one of `values_filename` or `values` should be passed'
 
