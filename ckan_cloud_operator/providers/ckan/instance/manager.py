@@ -130,12 +130,13 @@ def update(instance_id_or_name, override_spec=None, persist_overrides=False, wai
             routers_manager.update('instances-default', wait_ready)
         else:
             logs.info('skipping route creation', skip_route=skip_route, sub_domain=pre_update_hook_data.get('sub-domain'))
-        logs.info('creating ckan admin')
-        ckan_admin_email = pre_update_hook_data.get('ckan-admin-email')
-        ckan_admin_password = pre_update_hook_data.get('ckan-admin-password')
-        ckan_admin_name = pre_update_hook_data.get('ckan-admin-name', 'admin')
-        res = create_ckan_admin_user(instance_id, ckan_admin_name, ckan_admin_email, ckan_admin_password)
-        logs.info(**res)
+        if not instance['spec'].get('skipCreateCkanAdmin', False):
+            logs.info('creating ckan admin')
+            ckan_admin_email = instance['spec'].get('ckanAdminEmail', pre_update_hook_data.get('ckan-admin-email'))
+            ckan_admin_password = pre_update_hook_data.get('ckan-admin-password')
+            ckan_admin_name = instance['spec'].get('ckanAdminName', pre_update_hook_data.get('ckan-admin-name', 'admin'))
+            res = create_ckan_admin_user(instance_id, ckan_admin_name, ckan_admin_email, ckan_admin_password)
+            logs.info(**res)
         logs.info('Instance is ready', instance_id=instance_id, instance_name=(instance_id_or_name if instance_id_or_name != instance_id else None))
 
 
