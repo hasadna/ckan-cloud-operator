@@ -45,7 +45,8 @@ def create(instance_type, values_file, instance_id, instance_name, exists_ok, dr
 @click.option('--skip-route', is_flag=True)
 @click.option('--force', is_flag=True)
 @click.option('--override-spec-file')
-def update(instance_id_or_name, override_spec_json, persist_overrides, wait_ready, skip_deployment, skip_route, force, override_spec_file):
+@click.option('--ckan-cloud-docker-latest-tag')
+def update(instance_id_or_name, override_spec_json, persist_overrides, wait_ready, skip_deployment, skip_route, force, override_spec_file, ckan_cloud_docker_latest_tag):
     """Update an instance to the latest resource spec, optionally applying the given json override to the resource spec
 
     Examples:
@@ -60,6 +61,11 @@ def update(instance_id_or_name, override_spec_json, persist_overrides, wait_read
     elif override_spec_file:
         with open(override_spec_file) as f:
             override_spec = yaml.safe_load(f)
+    if ckan_cloud_docker_latest_tag:
+        assert override_spec.get("ckanImage"), "ckanImage attribute is required in spec for --ckan-cloud-docker-latest-tag arg"
+        if override_spec["ckanImage"].endswith(":latest"):
+            override_spec["ckanImage"] = override_spec["ckanImage"].replace(":latest", ":%s" % ckan_cloud_docker_latest_tag)
+            logs.info("Replacing ckanImage to latest tag: %s" % override_spec["ckanImage"])
     manager.update(instance_id_or_name, override_spec=override_spec, persist_overrides=persist_overrides,
                    wait_ready=wait_ready, skip_deployment=skip_deployment, skip_route=skip_route,
                    force=force)
