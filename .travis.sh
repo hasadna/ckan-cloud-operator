@@ -14,56 +14,56 @@ if [ "${1}" == "install" ]; then
 elif [ "${1}" == "install-tools" ]; then
     if [ "${K8_PROVIDER}" == "minikube" ]; then
       # Install Minikube
-      echo Installing Minikube
-      curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-      sudo install minikube-linux-amd64 /usr/local/bin/minikube
-      rm minikube-linux-amd64 && minikube version
+      echo Installing Minikube &&\
+      curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 &&\
+      sudo install minikube-linux-amd64 /usr/local/bin/minikube &&\
+      rm minikube-linux-amd64 && minikube version &&\
       echo Minikube Installed Successfully!
-    fi
+    fi &&\
 
     if [ "${K8_PROVIDER}" == "aws" ]; then
       # Install terraform
-      echo Installing Terraform
+      echo Installing Terraform &&\
       (cd terraform/aws/ && \
         curl -o tf.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
         unzip tf.zip && \
-        ./terraform version)
+        ./terraform version) &&\
       (cd terraform/aws/ami/ && \
         curl -o pk.zip https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip && \
         unzip pk.zip && \
-        ./packer version)
+        ./packer version) &&\
 
       # Install AWS tools
-      echo Installing AWS tools
-      pip install awscli
-      curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/${AWS_IAM_AUTHENTICATOR_VERSION}/bin/linux/amd64/aws-iam-authenticator
-      chmod +x aws-iam-authenticator && sudo mv aws-iam-authenticator /usr/local/bin/
-      aws --version
-      aws-iam-authenticator version
+      echo Installing AWS tools &&\
+      pip install awscli &&\
+      curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/${AWS_IAM_AUTHENTICATOR_VERSION}/bin/linux/amd64/aws-iam-authenticator &&\
+      chmod +x aws-iam-authenticator && sudo mv aws-iam-authenticator /usr/local/bin/ &&\
+      aws --version &&\
+      aws-iam-authenticator version &&\
       echo AWS Dependencies Installed Successfully!
-    fi
+    fi &&\
 
     if [ "${K8_PROVIDER}" == "azure" ]; then
       # Install  terraform
       wget -O terraform.zip https://releases.hashicorp.com/terraform/0.12.18/terraform_0.12.18_linux_amd64.zip &&\
       unzip terraform.zip -d /tmp &&\
-      sudo mv /tmp/terraform /usr/local/bin/
+      sudo mv /tmp/terraform /usr/local/bin/ &&\
 
-      echo Terraform Installed Successfully!
+      echo Terraform Installed Successfully! &&\
 
       # Intall Azure CLI and login
-      sudo apt-get update
-      sudo apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+      sudo apt-get update &&\
+      sudo apt-get install ca-certificates curl apt-transport-https lsb-release gnupg &&\
       curl -sL https://packages.microsoft.com/keys/microsoft.asc |
       gpg --dearmor |
-      sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null
-      AZ_REPO=$(lsb_release -cs)
+      sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null &&\
+      AZ_REPO=$(lsb_release -cs) &&\
       echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
-      sudo tee /etc/apt/sources.list.d/azure-cli.list
-      sudo apt-get update
-      sudo apt-get install azure-cli
+      sudo tee /etc/apt/sources.list.d/azure-cli.list &&\
+      sudo apt-get update &&\
+      sudo apt-get install azure-cli &&\
       echo Azure CLI Installed Successfully!
-   fi
+   fi &&\
 
    if [ "${K8_PROVIDER}" == "gcloud" ]; then
       apt-get update && apt-get install -y gnupg bash-completion build-essential jq python-pip &&\
@@ -71,19 +71,19 @@ elif [ "${1}" == "install-tools" ]; then
       echo "deb http://packages.cloud.google.com/apt cloud-sdk-stretch main" >> /etc/apt/sources.list.d/google-cloud-sdk.list && \
       curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
       apt-get update -y && apt-get install -y google-cloud-sdk postgresql nano dnsutils
-   fi
+   fi &&\
 
-    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
-    chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
-    echo Kubectl Installed Successfully!
+    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl &&\
+    chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl &&\
+    echo Kubectl Installed Successfully! &&\
 
     curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh &&\
      chmod 700 get_helm.sh &&\
      ./get_helm.sh --version "${HELM_VERSION}" &&\
-     helm version --client && rm ./get_helm.sh
-    echo Helm Installed Successfully!
+     helm version --client && rm ./get_helm.sh &&\
+    echo Helm Installed Successfully! &&\
 
-    sudo apt-get update && sudo apt-get install -y socat jq
+    sudo apt-get update && sudo apt-get install -y socat jq &&\
 
     echo Instalation Complete && exit 0
 
