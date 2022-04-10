@@ -58,10 +58,10 @@ def get_internal_http_endpoint():
 def solr_curl(path, required=False, debug=False, max_retries=15):
     deployment_name = _get_resource_name(_get_sc_suffixes()[0])
     if debug:
-        kubectl.check_call(f'exec deployment-pod::{deployment_name} -- curl \'localhost:8983/solr{path}\'',
+        kubectl.check_call(f'exec -c sc deployment-pod::{deployment_name} -- curl \'localhost:8983/solr{path}\'',
                            use_first_pod=True)
     else:
-        exitcode, output = kubectl.getstatusoutput(f'exec deployment-pod::{deployment_name} -- curl -s -f \'localhost:8983/solr{path}\'',
+        exitcode, output = kubectl.getstatusoutput(f'exec -c sc deployment-pod::{deployment_name} -- curl -s -f \'localhost:8983/solr{path}\'',
                            use_first_pod=True)
         if exitcode == 0:
             return output

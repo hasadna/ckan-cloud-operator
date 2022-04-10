@@ -162,7 +162,7 @@ def get_item_detailed_status(item):
                 "kind": "failed_condition",
                 "status": condition["status"],
                 "reason": condition["reason"],
-                "message": condition["message"],
+                "message": condition.get("message"),
                 "last_transition": condition["lastTransitionTime"]
             })
     return item_status
