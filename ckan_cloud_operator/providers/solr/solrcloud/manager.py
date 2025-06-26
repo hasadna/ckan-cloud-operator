@@ -285,7 +285,7 @@ def _apply_zookeeper_deployment(suffix, volume_spec, zookeeper_configmap_name, h
                             'livenessProbe': {
                                 'exec': {'command': ['zkOk.sh']},
                                 'failureThreshold': 3, 'initialDelaySeconds': 15, 'periodSeconds': 10,
-                                'successThreshold': 1, 'timeoutSeconds': 5
+                                'successThreshold': 1, 'timeoutSeconds': 20
                             },
                             'ports': [
                                 {'containerPort': 2181, 'name': 'client', 'protocol': 'TCP'},
@@ -295,7 +295,7 @@ def _apply_zookeeper_deployment(suffix, volume_spec, zookeeper_configmap_name, h
                             'readinessProbe': {
                                 'exec': {'command': ['zkOk.sh']},
                                 'failureThreshold': 3, 'initialDelaySeconds': 15, 'periodSeconds': 10,
-                                'successThreshold': 1, 'timeoutSeconds': 5
+                                'successThreshold': 1, 'timeoutSeconds': 20
                             },
                             'resources': {'requests': {'cpu': cpu_req, 'memory': mem_req}, 'limits': {'cpu': cpu_lim, 'memory': mem_lim}},
                             'volumeMounts': [
